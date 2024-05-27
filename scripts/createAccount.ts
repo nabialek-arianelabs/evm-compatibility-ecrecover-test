@@ -1,44 +1,42 @@
-import {Client, PrivateKey, AccountCreateTransaction, Hbar, AccountId} from "@hashgraph/sdk";
-import {HEDERA_OPERATOR_ID, HEDERA_OPERATOR_KEY} from "./config";
-import {Account} from "./account";
+import {
+    Client,
+    PrivateKey,
+    AccountCreateTransaction,
+    Hbar,
+} from '@hashgraph/sdk';
+import { Account } from './account';
 
-
-async function createAccount(keyType: string) {
-    const client = Client.forTestnet();
-    client.setOperator(AccountId.fromString(HEDERA_OPERATOR_ID), PrivateKey.fromStringECDSA(HEDERA_OPERATOR_KEY));
-
+async function createAccount(operator: Client, keyType: string, withAlias: boolean) {
     let newPrivateKey;
     switch (keyType) {
-        case "ED25519": {
+        case 'ED25519': {
             newPrivateKey = PrivateKey.generateED25519();
             break;
         }
-        case "EDCSA": {
+        case 'ECDSA': {
             newPrivateKey = PrivateKey.generateECDSA();
             break;
         }
         default:{
-            throw new Error("Unsupported key type");
+            throw new Error('Unsupported key type');
         }
     }
     const newPublicKey = newPrivateKey.publicKey;
+    if (withAlias) {
+        newPublicKey.toAccountId(0, 0);
+    }
 
     const transaction = new AccountCreateTransaction()
         .setKey(newPublicKey)
-        .setInitialBalance(new Hbar(10));
-
-    const response = await transaction.execute(client);
-    const receipt = await response.getReceipt(client);
-
-    const newAccountId = receipt.accountId;
-
-    console.log(`Account ID: ${newAccountId}`);
-    console.log(`Public Key: 0x${newPublicKey.toStringRaw()}`);
-    console.log(`Private Key: 0x${newPrivateKey.toStringRaw()}`);
+        .setInitialBalance(new Hbar(20));
+    if (withAlias) {
+        transaction.setAlias(newPrivateKey.publicKey.toEvmAddress());
+    }
+    const response = await transaction.execute(operator);
     return {
-        accountId: newAccountId,
+        accountId: (await response.getReceipt(operator)).accountId,
         privateKey: newPrivateKey,
-        accountType: keyType
+        accountType: keyType,
     } as Account;
 }
 

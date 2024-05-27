@@ -1,7 +1,7 @@
-import {AccountId, PrivateKey} from "@hashgraph/sdk";
+import {AccountId, PrivateKey} from '@hashgraph/sdk';
 
 export type Account = {
     accountId: AccountId,
     privateKey: PrivateKey,
-    accountType: "EDCSA" | "ED25519"
+    accountType: 'ECDSA' | 'ED25519',
 };
